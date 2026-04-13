@@ -1,0 +1,16 @@
+# Eval and research files (live on eval/research branch only)
+benchmarks/
+docs/references/
+docs/samples/
+docs/research/
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+.env
