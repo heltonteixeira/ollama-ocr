@@ -52,7 +52,11 @@ MCP client config passes environment variables via the `env` block:
   "mcpServers": {
     "ollama-ocr": {
       "command": "node",
-      "args": ["/absolute/path/to/mcp-ollama-ocr/dist/index.js"],
+      "args": [
+        "/absolute/path/to/mcp-ollama-ocr/dist/index.js",
+        "--read", "/project/src,/home/user/docs",
+        "--write", "/project/output"
+      ],
       "env": {
         "OLLAMA_API_KEY": "your-api-key",
         "OLLAMA_OCR_OUTPUT_DIR": "/path/to/output/directory",
@@ -64,6 +68,8 @@ MCP client config passes environment variables via the `env` block:
 }
 ```
 
+### Environment Variables
+
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OLLAMA_API_KEY` | yes | API key from `ollama.com/settings/keys` |
@@ -72,6 +78,17 @@ MCP client config passes environment variables via the `env` block:
 | `OLLAMA_OCR_FALLBACK_MODEL` | no | Model to use if the primary model fails (auth error, vision unsupported). Default: `"qwen3-vl:235b"` |
 
 `OLLAMA_API_KEY` and `OLLAMA_OCR_OUTPUT_DIR` MUST be set. The server logs an error to stderr and exits if either is missing.
+
+### CLI Arguments (Path Restrictions)
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `--read <dirs>` | no | Comma-separated list of directories the server is allowed to read from. Defaults to `--write` dirs if omitted. |
+| `--write <dirs>` | no | Comma-separated list of directories the server is allowed to write to. `OLLAMA_OCR_OUTPUT_DIR` must be within one of these. |
+
+If neither `--read` nor `--write` is specified, all paths are allowed and a warning is logged. This preserves backward compatibility but is not recommended for production.
+
+All directory paths are resolved to real (canonical) paths at startup. The server exits if any specified directory does not exist, or if `OLLAMA_OCR_OUTPUT_DIR` falls outside the `--write` scope.
 
 **Model fallback behavior**: If the primary model returns a vision-unsupported error or auth error, the server retries with the fallback model. If no fallback is configured, the error is returned to the client.
 
@@ -198,6 +215,7 @@ The `---` separator with page header is the same across both markdown and text, 
 
 ### 1. Input Validation
 
+- Verify `filePath` is within allowed read directories (if `--read` configured)
 - Verify `filePath` exists and is readable
 - Verify file extension is supported (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`, `.tif`)
 - Verify `OLLAMA_API_KEY` and `OLLAMA_OCR_OUTPUT_DIR` are set and output dir exists
@@ -236,6 +254,8 @@ The `---` separator with page header is the same across both markdown and text, 
 ### 4. Output Generation
 
 - Build the output structure for the selected format
+- Validate write path is within allowed write directories (if `--write` configured)
+- Write atomically: temp file in `$TMPDIR`, then `rename()` to final path
 - Write to `OLLAMA_OCR_OUTPUT_DIR/{filename}_{timestamp}.{ext}`
 - Return the summary text to the MCP client (not the file contents)
 
@@ -386,7 +406,8 @@ mcp-ollama-ocr/
 │   │   ├── image-loader.ts   # Read image files, convert to base64
 │   │   └── output-writer.ts  # Format and write output files
 │   ├── utils/
-│   │   ├── config.ts         # Read and validate env config
+│   │   ├── config.ts         # Read and validate env config + CLI args
+│   │   ├── path-guard.ts     # Path validation against allowed directories
 │   │   ├── concurrency.ts    # Batch splitter + semaphore
 │   │   ├── retry.ts          # Retry with exponential backoff
 │   │   └── progress.ts       # Structured progress logger
@@ -426,7 +447,8 @@ mcp-ollama-ocr/
 ## Testing Strategy
 
 - **Unit tests** for:
-  - Config validation (missing env vars, invalid values)
+  - Config validation (missing env vars, invalid values, CLI args)
+  - Path guard (isWithinAllowed, assertPath, PermissionError)
   - Page range parsing
   - Output formatting (JSON, markdown, text)
   - Retry logic (mock failures)
@@ -446,6 +468,9 @@ mcp-ollama-ocr/
 ### Always Do
 
 - Use `$TMPDIR` for all temporary files (Termux compatibility)
+- Write output files atomically (temp file + rename)
+- Validate file paths against allowed directories when `--read`/`--write` are configured
+- Resolve all paths to real (canonical) paths before validation
 - Retry failed pages up to 3 times with backoff before skipping
 - Log progress via MCP logging (stderr)
 - Clean up temporary files in all cases (success, failure, partial)

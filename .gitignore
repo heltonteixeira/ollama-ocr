@@ -1,8 +1,11 @@
-# Eval and research files (live on eval/research branch only)
-benchmarks/
-docs/references/
-docs/samples/
-docs/research/
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test coverage
+coverage/
 
 # OS/editor
 .DS_Store
@@ -10,7 +13,15 @@ docs/research/
 *.swo
 *~
 
-# Python
-__pycache__/
-*.pyc
+# Environment / secrets
 .env
+.env.local
+*.key
+*secret*
+config.local.*
+
+# Eval and research files (live on eval/research branch only)
+benchmarks/
+docs/references/
+docs/samples/
+docs/research/

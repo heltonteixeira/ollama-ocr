@@ -1,0 +1,26 @@
+{
+  "name": "mcp-ollama-ocr",
+  "version": "0.0.1",
+  "description": "MCP server for OCR using Ollama Cloud vision models",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0",
+    "ollama": "^0.5.0",
+    "pdfjs-dist": "^5.0.0",
+    "@napi-rs/canvas": "^0.1.0",
+    "p-limit": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0"
+  }
+}
