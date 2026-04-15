@@ -1,4 +1,4 @@
-import { realpathSync, existsSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { resolve, sep } from "node:path";
 
 export interface Config {
@@ -18,12 +18,12 @@ function parseDirs(value: string, label: string): string[] {
     .map((p) => p.trim())
     .filter((p) => p.length > 0)
     .map((p) => {
-      const resolved = resolve(p);
-      if (!existsSync(resolved)) {
-        process.stderr.write(`Error: ${label} directory does not exist: ${resolved}\n`);
+      try {
+        return realpathSync(resolve(p));
+      } catch {
+        process.stderr.write(`Error: ${label} directory does not exist: ${resolve(p)}\n`);
         process.exit(1);
       }
-      return realpathSync(resolved);
     });
 }
 
@@ -43,7 +43,11 @@ function parseCliArgs(argv: string[]): { readRaw?: string; writeRaw?: string } {
   return { readRaw, writeRaw };
 }
 
+let cachedConfig: Config | undefined;
+
 export function getConfig(): Config {
+  if (cachedConfig) return cachedConfig;
+
   const apiKey = process.env.OLLAMA_API_KEY;
   const outputDirRaw = process.env.OLLAMA_OCR_OUTPUT_DIR;
 
@@ -69,18 +73,17 @@ export function getConfig(): Config {
   if (readRaw) {
     readDirs = parseDirs(readRaw, "--read");
   } else if (writeDirs.length > 0) {
-    // Default: read dirs = write dirs
     readDirs = [...writeDirs];
   }
 
-  // Resolve output dir
-  const outputDir = realpathSync(resolve(outputDirRaw));
-  if (!existsSync(outputDir)) {
-    process.stderr.write(`Error: OLLAMA_OCR_OUTPUT_DIR does not exist: ${outputDir}\n`);
+  let outputDir: string;
+  try {
+    outputDir = realpathSync(resolve(outputDirRaw));
+  } catch {
+    process.stderr.write(`Error: OLLAMA_OCR_OUTPUT_DIR does not exist: ${resolve(outputDirRaw)}\n`);
     process.exit(1);
   }
 
-  // If writeDirs are specified, outputDir must be within them
   if (writeDirs.length > 0) {
     const inWriteDir = writeDirs.some(
       (d) => outputDir === d || outputDir.startsWith(d + sep),
@@ -93,14 +96,13 @@ export function getConfig(): Config {
     }
   }
 
-  // Warn if no directory restrictions
   if (readDirs.length === 0 && writeDirs.length === 0) {
     process.stderr.write(
       "[WARN] No --read/--write directories specified — all paths allowed. Use --read and --write to restrict file access.\n",
     );
   }
 
-  return {
+  cachedConfig = {
     apiKey,
     outputDir,
     model: process.env.OLLAMA_OCR_MODEL ?? DEFAULT_MODEL,
@@ -108,4 +110,6 @@ export function getConfig(): Config {
     readDirs,
     writeDirs,
   };
+
+  return cachedConfig;
 }

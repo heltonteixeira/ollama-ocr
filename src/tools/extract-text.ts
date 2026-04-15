@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { existsSync, accessSync, constants } from "node:fs";
 import { extname, resolve, basename } from "node:path";
+import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
@@ -9,7 +9,7 @@ import { PermissionError, assertPath } from "../utils/path-guard.js";
 import { info, warn } from "../utils/progress.js";
 import { retry } from "../utils/retry.js";
 import { splitBatches, processBatch } from "../utils/concurrency.js";
-import { loadImage } from "../services/image-loader.js";
+import { loadImage, IMAGE_EXTENSIONS } from "../services/image-loader.js";
 import { renderPdf, cleanupTempFiles } from "../services/pdf-renderer.js";
 import { extractTextFromImage } from "../services/ollama-client.js";
 import {
@@ -23,7 +23,7 @@ import {
 } from "../services/output-writer.js";
 import { OCR_USER_PROMPT } from "../prompts/ocr.js";
 
-const SUPPORTED_EXTENSIONS = new Set([".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"]);
+const SUPPORTED_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ".pdf"]);
 
 const ExtractTextInputSchema = {
   filePath: z.string().describe("Absolute path to a PDF or image file"),
@@ -31,15 +31,6 @@ const ExtractTextInputSchema = {
   model: z.string().optional().describe("Ollama vision model identifier. Overrides OLLAMA_OCR_MODEL"),
   pages: z.string().optional().describe("Page range for PDFs. Formats: \"1-5\", \"1,3,7\", \"1-3,7,10-12\""),
 };
-
-function isReadable(filePath: string): boolean {
-  try {
-    accessSync(filePath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -123,10 +114,8 @@ export async function handleExtractText(
   const model = args.model ?? config.model;
   const startTime = Date.now();
 
-  // --- Input Validation ---
   const absolutePath = resolve(args.filePath);
 
-  // Path traversal check — only if readDirs are configured
   if (config.readDirs.length > 0) {
     try {
       assertPath(absolutePath, config.readDirs, "Read");
@@ -148,13 +137,6 @@ export async function handleExtractText(
     };
   }
 
-  if (!isReadable(absolutePath)) {
-    return {
-      content: [{ type: "text", text: `File is not readable: ${absolutePath}` }],
-      isError: true,
-    };
-  }
-
   const ext = extname(absolutePath).toLowerCase();
   if (!SUPPORTED_EXTENSIONS.has(ext)) {
     return {
@@ -170,7 +152,6 @@ export async function handleExtractText(
     };
   }
 
-  // Validate pages format if provided
   if (args.pages) {
     const pagesRegex = /^\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*$/;
     if (!pagesRegex.test(args.pages)) {
@@ -184,7 +165,6 @@ export async function handleExtractText(
   const isPdf = ext === ".pdf";
   const sourceType = isPdf ? "pdf" : "image";
 
-  // --- File Preparation ---
   let pageImages: PageImage[] = [];
   let totalPages = 1;
   const tempFiles: string[] = [];
@@ -209,7 +189,6 @@ export async function handleExtractText(
 
     await info(`Starting extraction: ${absolutePath} (${totalPages} page${totalPages > 1 ? "s" : ""}, model: ${model})`);
 
-    // --- Page Processing ---
     const batches = splitBatches(pageImages, 10);
     const results: PageResult[] = [];
 
@@ -231,10 +210,8 @@ export async function handleExtractText(
       await info(`Batch ${batchIdx + 1}/${batches.length} complete: ${batchSuccessCount}/${batch.length} successful`);
     }
 
-    // Sort results by page number
     results.sort((a, b) => a.pageNumber - b.pageNumber);
 
-    // --- Output Generation ---
     const successfulPages = results.filter((r) => r.status === "success");
     const failedPages = results.filter((r) => r.status === "failed");
     const totalChars = successfulPages.reduce((sum, r) => sum + r.characterCount, 0);
@@ -272,7 +249,6 @@ export async function handleExtractText(
 
     const outputPath = await writeOutput(config.outputDir, filename, content, config.writeDirs);
 
-    // --- All pages failed? ---
     if (successfulPages.length === 0) {
       return {
         content: [{
@@ -311,7 +287,6 @@ export async function handleExtractText(
       isError: true,
     };
   } finally {
-    // --- Cleanup ---
     if (tempFiles.length > 0) {
       await cleanupTempFiles(tempFiles);
     }

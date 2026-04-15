@@ -139,7 +139,7 @@ export async function writeOutput(
   }
 
   // Atomic write: temp file + rename
-  const tmpdir = process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp";
+  const tmpdir = process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP ?? "/data/data/com.termux/files/usr/tmp";
   const tmpPath = join(tmpdir, `.ocr_tmp_${Date.now()}_${filename}`);
   await writeFile(tmpPath, content, "utf-8");
   await rename(tmpPath, outputPath);

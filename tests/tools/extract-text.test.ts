@@ -9,9 +9,13 @@ vi.mock("../../src/services/pdf-renderer.js", () => ({
   cleanupTempFiles: vi.fn(),
 }));
 
-vi.mock("../../src/services/image-loader.js", () => ({
-  loadImage: vi.fn(),
-}));
+vi.mock("../../src/services/image-loader.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/services/image-loader.js")>();
+  return {
+    ...actual,
+    loadImage: vi.fn(),
+  };
+});
 
 vi.mock("../../src/utils/progress.js", () => ({
   info: vi.fn(),

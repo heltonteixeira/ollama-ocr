@@ -1,7 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 
-const SUPPORTED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"]);
+export const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"] as const;
+
+const IMAGE_EXT_SET = new Set(IMAGE_EXTENSIONS);
+
+export function isSupportedImageExtension(ext: string): boolean {
+  return IMAGE_EXT_SET.has(ext.toLowerCase() as typeof IMAGE_EXTENSIONS[number]);
+}
 
 const MIME_MAP: Record<string, string> = {
   ".png": "image/png",
@@ -16,14 +22,6 @@ const MIME_MAP: Record<string, string> = {
 export interface ImageData {
   base64: string;
   mimeType: string;
-}
-
-export function isSupportedImageExtension(ext: string): boolean {
-  return SUPPORTED_EXTENSIONS.has(ext.toLowerCase());
-}
-
-export function getSupportedExtensions(): Set<string> {
-  return new Set(SUPPORTED_EXTENSIONS);
 }
 
 export async function loadImage(filePath: string): Promise<ImageData> {

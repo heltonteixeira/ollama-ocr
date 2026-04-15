@@ -5,20 +5,44 @@ export interface OllamaResponse {
   usedFallback: boolean;
 }
 
-function isVisionUnsupportedError(err: unknown): boolean {
+let client: Ollama | undefined;
+
+function getClient(): Ollama {
+  if (!client) {
+    client = new Ollama({
+      host: "https://ollama.com",
+      headers: {
+        Authorization: `Bearer ${process.env.OLLAMA_API_KEY ?? ""}`,
+      },
+    });
+  }
+  return client;
+}
+
+function isErrorWithKeywords(err: unknown, keywords: string[]): boolean {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
-    return msg.includes("vision") || msg.includes("image") || msg.includes("multimodal");
+    return keywords.some((kw) => msg.includes(kw));
   }
   return false;
 }
 
-function isAuthError(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-    return msg.includes("auth") || msg.includes("unauthorized") || msg.includes("forbidden") || msg.includes("api key");
-  }
-  return false;
+const VISION_ERROR_KEYWORDS = ["vision", "image", "multimodal"];
+const AUTH_ERROR_KEYWORDS = ["auth", "unauthorized", "forbidden", "api key"];
+
+async function chatWithModel(model: string, prompt: string, base64Image: string): Promise<string> {
+  const response = await getClient().chat({
+    model,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+        images: [base64Image],
+      },
+    ],
+    stream: false,
+  });
+  return response.message.content;
 }
 
 export async function extractTextFromImage(
@@ -27,48 +51,19 @@ export async function extractTextFromImage(
   prompt: string,
   fallbackModel?: string,
 ): Promise<OllamaResponse> {
-  const client = new Ollama({
-    host: "https://ollama.com",
-    headers: {
-      Authorization: `Bearer ${process.env.OLLAMA_API_KEY ?? ""}`,
-    },
-  });
-
   try {
-    const response = await client.chat({
-      model,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-          images: [base64Image],
-        },
-      ],
-      stream: false,
-    });
-
     return {
-      text: response.message.content,
+      text: await chatWithModel(model, prompt, base64Image),
       usedFallback: false,
     };
   } catch (err) {
-    const needsFallback = isVisionUnsupportedError(err) || isAuthError(err);
+    const needsFallback =
+      isErrorWithKeywords(err, VISION_ERROR_KEYWORDS) ||
+      isErrorWithKeywords(err, AUTH_ERROR_KEYWORDS);
 
     if (needsFallback && fallbackModel) {
-      const response = await client.chat({
-        model: fallbackModel,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-            images: [base64Image],
-          },
-        ],
-        stream: false,
-      });
-
       return {
-        text: response.message.content,
+        text: await chatWithModel(fallbackModel, prompt, base64Image),
         usedFallback: true,
       };
     }
