@@ -38,12 +38,12 @@ jobs:
     - name: Build project
       run: npm run build
 
+    - name: Configure git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
     - name: Release
       run: npm run release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Push tags and changes
-      run: |
-        git push --follow-tags
-        git push origin --tags
