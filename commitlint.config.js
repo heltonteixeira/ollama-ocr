@@ -6,7 +6,6 @@ export default {
       'always',
       ['feat', 'fix', 'docs', 'style', 'refactor', 'test', 'chore', 'perf']
     ],
-    'subject-case': [0],
-    'line-length': [2, 'always', 100]
+    'subject-case': [0]
   }
 };
