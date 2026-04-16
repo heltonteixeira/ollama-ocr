@@ -22,10 +22,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@napi-rs/canvas"
         update-types: ["version-update:semver-major"]
-    # Labels for Dependabot PRs
-    labels:
-      - "dependencies"
-      - "dependabot"
     # Commit message prefix
     commit-message:
       prefix: "deps"
