@@ -1,19 +1,18 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### 0.0.1 (2026-04-16)
 
-## [Unreleased]
 
-### Added
-- Initial MCP server implementation with Ollama Cloud vision models
-- PDF and image text extraction support
-- Multiple output formats (JSON, Markdown, Text)
-- Path restrictions for read/write operations
-- Fallback model support
-- Comprehensive error handling
+### Features
+
+* implement MCP OCR server with Ollama integration ([cb7fa4c](https://github.com/heltonteixeira/ollama-ocr/commit/cb7fa4c1f64f6c9950e8e9b5c88442c8ee3f4527))
+
+
+### Build
+
+* add standard-version for automated releases ([4bdece0](https://github.com/heltonteixeira/ollama-ocr/commit/4bdece08a50d9f327c486dc1a6e355f61ee5d0ef))
 
 ## [0.0.1] - 2025-04-13
 
