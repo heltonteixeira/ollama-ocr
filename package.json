@@ -1,26 +1,63 @@
 {
-  "name": "mcp-ollama-ocr",
+  "name": "@mcpservers/ollama-ocr",
   "version": "0.0.1",
   "description": "MCP server for OCR using Ollama Cloud vision models",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "mcp-ollama-ocr": "dist/index.js"
+  },
+  "author": "bossying",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heltonteixeira/ollama-ocr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/heltonteixeira/ollama-ocr/issues"
+  },
+  "homepage": "https://github.com/heltonteixeira/ollama-ocr#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ocr",
+    "ollama",
+    "vision",
+    "pdf",
+    "text-extraction",
+    "ocr-server"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "standard-version",
+    "release:first": "standard-version --first-release",
+    "release:patch": "standard-version --release-as patch",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:dry": "standard-version --dry-run",
+    "prepare": "husky"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^3.25.0",
-    "ollama": "^0.5.0",
-    "pdfjs-dist": "^5.0.0",
     "@napi-rs/canvas": "^0.1.0",
-    "p-limit": "^6.0.0"
+    "ollama": "^0.5.0",
+    "p-limit": "^6.0.0",
+    "pdfjs-dist": "^5.0.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@types/node": "^22.0.0",
+    "husky": "^9.1.7",
+    "standard-version": "^9.5.0",
     "typescript": "^5.8.0",
-    "vitest": "^3.0.0",
-    "@types/node": "^22.0.0"
+    "vitest": "^3.0.0"
   }
 }

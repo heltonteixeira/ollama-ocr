@@ -11,10 +11,73 @@ MCP server that uses Ollama Cloud vision models to extract verbatim text from PD
 
 ### Install
 
+**Local development:**
 ```bash
-git clone <repo-url> && cd mcp-ollama-ocr
+git clone https://github.com/heltonteixeira/ollama-ocr.git && cd ollama-ocr
 npm install
 npm run build
+```
+
+**Global npm install** (after publishing):
+```bash
+npm install -g @mcpservers/ollama-ocr
+```
+
+### Configure with Claude Code
+
+**Local:**
+```bash
+claude mcp add ollama-ocr \
+  -e OLLAMA_API_KEY=your-api-key \
+  -e OLLAMA_OCR_OUTPUT_DIR=/path/to/output \
+  -e OLLAMA_OCR_MODEL=gemini-3-flash-preview \
+  -- node /absolute/path/to/ollama-ocr/dist/index.js
+```
+
+**Global:**
+```bash
+claude mcp add ollama-ocr \
+  -e OLLAMA_API_KEY=your-api-key \
+  -e OLLAMA_OCR_OUTPUT_DIR=/path/to/output \
+  -e OLLAMA_OCR_MODEL=gemini-3-flash-preview \
+  -- mcp-ollama-ocr
+```
+
+### Configure with Claude Desktop
+
+**Local install:**
+```json
+{
+  "mcpServers": {
+    "ollama-ocr": {
+      "command": "node",
+      "args": ["/absolute/path/to/ollama-ocr/dist/index.js"],
+      "env": {
+        "OLLAMA_API_KEY": "your-api-key",
+        "OLLAMA_OCR_OUTPUT_DIR": "/path/to/output/directory",
+        "OLLAMA_OCR_MODEL": "gemini-3-flash-preview",
+        "OLLAMA_OCR_FALLBACK_MODEL": "qwen3-vl:235b"
+      }
+    }
+  }
+}
+```
+
+**Global install:**
+```json
+{
+  "mcpServers": {
+    "ollama-ocr": {
+      "command": "mcp-ollama-ocr",
+      "env": {
+        "OLLAMA_API_KEY": "your-api-key",
+        "OLLAMA_OCR_OUTPUT_DIR": "/path/to/output/directory",
+        "OLLAMA_OCR_MODEL": "gemini-3-flash-preview",
+        "OLLAMA_OCR_FALLBACK_MODEL": "qwen3-vl:235b"
+      }
+    }
+  }
+}
 ```
 
 ### Configure with Claude Code
