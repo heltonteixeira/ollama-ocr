@@ -8,7 +8,7 @@ describe("config", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    const tmpBase = process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp";
+    const tmpBase = process.env.TMPDIR ?? "/tmp";
     testOutputDir = join(tmpBase, `ocr-cfg-test-${Date.now()}`);
     mkdirSync(testOutputDir, { recursive: true });
   });
@@ -129,7 +129,7 @@ describe("config", () => {
   });
 
   it("should exit when outputDir is outside --write dirs", async () => {
-    const tmpBase = process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp";
+    const tmpBase = process.env.TMPDIR ?? "/tmp";
     const otherDir = join(tmpBase, `ocr-cfg-other-${Date.now()}`);
     mkdirSync(otherDir, { recursive: true });
 

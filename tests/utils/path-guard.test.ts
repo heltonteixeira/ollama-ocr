@@ -33,7 +33,7 @@ describe("isWithinAllowed", () => {
 });
 
 describe("assertPath", () => {
-  const tmpBase = process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp";
+  const tmpBase = process.env.TMPDIR ?? "/tmp";
   const testDir = join(tmpBase, `path-guard-test-${Date.now()}`);
   const allowedDir = join(testDir, "allowed");
   const outsideDir = join(testDir, "outside");

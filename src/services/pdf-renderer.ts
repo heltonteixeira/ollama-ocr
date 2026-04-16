@@ -42,7 +42,7 @@ export function parsePageRange(range: string, totalPages: number): number[] {
 }
 
 function getTempDir(): string {
-  return process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP ?? "/data/data/com.termux/files/usr/tmp";
+  return process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP ?? "/tmp";
 }
 
 export async function renderPdf(

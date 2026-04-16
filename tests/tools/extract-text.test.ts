@@ -51,7 +51,7 @@ describe("extract-text tool", () => {
   let testImage: string;
 
   beforeEach(async () => {
-    const tmpDir = process.env.TMPDIR ?? "/data/data/com.termux/files/usr/tmp";
+    const tmpDir = process.env.TMPDIR ?? "/tmp";
     testDir = join(tmpDir, `ocr-test-${Date.now()}`);
     await mkdir(testDir, { recursive: true });
 
