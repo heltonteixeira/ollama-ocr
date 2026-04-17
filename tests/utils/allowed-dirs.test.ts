@@ -7,6 +7,7 @@ import {
   getAllowedWriteDirs,
   getPermissionSource,
   resetAllowedDirs,
+  parseRootUris,
 } from "../../src/utils/allowed-dirs.js";
 
 describe("allowed-dirs", () => {
@@ -74,6 +75,42 @@ describe("allowed-dirs", () => {
       expect(getAllowedReadDirs()).toEqual([]);
       expect(getAllowedWriteDirs()).toEqual([]);
       expect(getPermissionSource()).toBe("none");
+    });
+  });
+
+  describe("parseRootUris", () => {
+    it("should parse file:// URIs to filesystem paths", () => {
+      const result = parseRootUris([
+        { uri: "file:///home/user/project", name: "Project" },
+      ]);
+      expect(result).toEqual(["/home/user/project"]);
+    });
+
+    it("should skip non-file URIs", () => {
+      const result = parseRootUris([
+        { uri: "https://example.com", name: "Remote" },
+      ]);
+      expect(result).toEqual([]);
+    });
+
+    it("should handle multiple roots", () => {
+      const result = parseRootUris([
+        { uri: "file:///home/user/project", name: "Project" },
+        { uri: "file:///home/user/docs", name: "Docs" },
+      ]);
+      expect(result).toEqual(["/home/user/project", "/home/user/docs"]);
+    });
+
+    it("should handle empty roots array", () => {
+      const result = parseRootUris([]);
+      expect(result).toEqual([]);
+    });
+
+    it("should handle Windows file URIs", () => {
+      const result = parseRootUris([
+        { uri: "file:///C:/Users/name/project", name: "Win" },
+      ]);
+      expect(result).toEqual(["C:/Users/name/project"]);
     });
   });
 });
