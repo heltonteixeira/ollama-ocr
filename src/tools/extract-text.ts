@@ -1,5 +1,5 @@
 import { existsSync, accessSync, constants } from "node:fs";
-import { extname, resolve, basename } from "node:path";
+import { extname, resolve, basename, join } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
@@ -248,7 +248,8 @@ export async function handleExtractText(
     }
 
     const outputDir = config.writeDirs[0];
-    const outputPath = await writeOutput(outputDir, filename, content, config.writeDirs);
+    const fullPath = join(outputDir, filename);
+    const outputPath = await writeOutput(fullPath, content);
 
     if (successfulPages.length === 0) {
       return {
