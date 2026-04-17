@@ -12,6 +12,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: "github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release):')"
 
     steps:
     - name: Checkout code
@@ -47,3 +48,15 @@ jobs:
       run: npm run release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push release
+      run: git push --follow-tags origin main
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        gh release create "v${VERSION}" \
+          --title "v${VERSION}" \
+          --generate-notes
