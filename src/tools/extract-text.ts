@@ -145,9 +145,9 @@ export async function handleExtractText(
     };
   }
 
-  if (!existsSync(config.outputDir)) {
+  if (config.writeDirs.length === 0) {
     return {
-      content: [{ type: "text", text: `Output directory does not exist: ${config.outputDir}` }],
+      content: [{ type: "text", text: "No output directory configured. Use --write to specify an output directory." }],
       isError: true,
     };
   }
@@ -247,7 +247,8 @@ export async function handleExtractText(
         break;
     }
 
-    const outputPath = await writeOutput(config.outputDir, filename, content, config.writeDirs);
+    const outputDir = config.writeDirs[0];
+    const outputPath = await writeOutput(outputDir, filename, content, config.writeDirs);
 
     if (successfulPages.length === 0) {
       return {

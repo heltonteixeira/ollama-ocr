@@ -27,7 +27,6 @@ vi.mock("../../src/utils/progress.js", () => ({
 vi.mock("../../src/utils/config.js", () => ({
   getConfig: vi.fn(() => ({
     apiKey: "test-key",
-    outputDir: "/test/output",
     model: "test-model",
     fallbackModel: "test-fallback",
     readDirs: [],
@@ -60,7 +59,6 @@ describe("extract-text tool", () => {
 
     mockGetConfig.mockReturnValue({
       apiKey: "test-key",
-      outputDir: testDir,
       model: "test-model",
       fallbackModel: "test-fallback",
       readDirs: [testDir],
@@ -171,7 +169,6 @@ describe("extract-text tool", () => {
   it("should return error for missing output directory", async () => {
     mockGetConfig.mockReturnValue({
       apiKey: "test-key",
-      outputDir: "/nonexistent/output/dir",
       model: "test-model",
       fallbackModel: "test-fallback",
       readDirs: [testDir],
@@ -185,7 +182,7 @@ describe("extract-text tool", () => {
     );
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Output directory does not exist");
+    expect(result.content[0].text).toContain("No output directory configured");
   });
 
   it("should return error for invalid page range format", async () => {
@@ -208,7 +205,6 @@ describe("extract-text tool", () => {
     await mkdir(restrictedDir, { recursive: true });
     mockGetConfig.mockReturnValue({
       apiKey: "test-key",
-      outputDir: testDir,
       model: "test-model",
       fallbackModel: "test-fallback",
       readDirs: [restrictedDir],
