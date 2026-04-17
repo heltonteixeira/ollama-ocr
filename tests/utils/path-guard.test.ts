@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { isWithinAllowed, assertPath, PermissionError } from "../../src/utils/path-guard.js";
+// tests/utils/path-guard.test.ts
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest";
+import { isWithinAllowed, assertPath, assertReadPath, assertWritePath, PermissionError } from "../../src/utils/path-guard.js";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setAllowedReadDirs, setAllowedWriteDirs, resetAllowedDirs } from "../../src/utils/allowed-dirs.js";
 
 describe("isWithinAllowed", () => {
   it("should return true for exact match", () => {
@@ -17,7 +19,6 @@ describe("isWithinAllowed", () => {
   });
 
   it("should return false for a prefix-only match (no trailing sep)", () => {
-    // /home/user/project-other should NOT match /home/user/project
     expect(isWithinAllowed("/home/user/project-other/file.txt", ["/home/user/project"])).toBe(false);
   });
 
@@ -32,7 +33,7 @@ describe("isWithinAllowed", () => {
   });
 });
 
-describe("assertPath", () => {
+describe("assertPath (with explicit dirs)", () => {
   const tmpBase = process.env.TMPDIR ?? "/tmp";
   const testDir = join(tmpBase, `path-guard-test-${Date.now()}`);
   const allowedDir = join(testDir, "allowed");
@@ -69,6 +70,53 @@ describe("assertPath", () => {
       expect(err).toBeInstanceOf(PermissionError);
       expect((err as PermissionError).message).toContain("Write denied");
     }
+  });
+});
+
+describe("assertReadPath", () => {
+  beforeEach(() => {
+    resetAllowedDirs();
+  });
+
+  it("should return real path when within read dirs", () => {
+    const tmpBase = process.env.TMPDIR ?? "/tmp";
+    const allowedDir = join(tmpBase, `read-test-${Date.now()}`);
+    mkdirSync(allowedDir, { recursive: true });
+    writeFileSync(join(allowedDir, "file.txt"), "test");
+
+    setAllowedReadDirs([allowedDir]);
+    const result = assertReadPath(join(allowedDir, "file.txt"));
+    expect(result).toContain("file.txt");
+
+    try { rmSync(allowedDir, { recursive: true, force: true }); } catch { /* ok */ }
+  });
+
+  it("should throw PermissionError when outside read dirs", () => {
+    setAllowedReadDirs(["/some/allowed/dir"]);
+    expect(() => assertReadPath("/outside/dir/file.txt")).toThrow(PermissionError);
+  });
+});
+
+describe("assertWritePath", () => {
+  beforeEach(() => {
+    resetAllowedDirs();
+  });
+
+  it("should return real path when within write dirs", () => {
+    const tmpBase = process.env.TMPDIR ?? "/tmp";
+    const allowedDir = join(tmpBase, `write-test-${Date.now()}`);
+    mkdirSync(allowedDir, { recursive: true });
+
+    setAllowedWriteDirs([allowedDir]);
+    const result = assertWritePath(join(allowedDir, "output.json"));
+    expect(result).toContain("output.json");
+
+    try { rmSync(allowedDir, { recursive: true, force: true }); } catch { /* ok */ }
+  });
+
+  it("should throw PermissionError when outside write dirs", () => {
+    setAllowedWriteDirs(["/some/allowed/dir"]);
+    expect(() => assertWritePath("/outside/dir/file.txt")).toThrow(PermissionError);
   });
 });
 
