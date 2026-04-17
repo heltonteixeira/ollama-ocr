@@ -1,3 +1,4 @@
+// tests/tools/extract-text.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../../src/services/ollama-client.js", () => ({
@@ -27,7 +28,6 @@ vi.mock("../../src/utils/progress.js", () => ({
 vi.mock("../../src/utils/config.js", () => ({
   getConfig: vi.fn(() => ({
     apiKey: "test-key",
-    outputDir: "/test/output",
     model: "test-model",
     fallbackModel: "test-fallback",
     readDirs: [],
@@ -39,8 +39,9 @@ import { extractTextFromImage } from "../../src/services/ollama-client.js";
 import { loadImage } from "../../src/services/image-loader.js";
 import { getConfig } from "../../src/utils/config.js";
 import { mkdir, writeFile, rm } from "node:fs/promises";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { setAllowedReadDirs, setAllowedWriteDirs, resetAllowedDirs } from "../../src/utils/allowed-dirs.js";
 
 const mockExtractText = vi.mocked(extractTextFromImage);
 const mockLoadImage = vi.mocked(loadImage);
@@ -58,17 +59,21 @@ describe("extract-text tool", () => {
     testImage = join(testDir, "test.png");
     await writeFile(testImage, Buffer.from("fake png data"));
 
+    // Set allowed dirs to the test directory
+    setAllowedReadDirs([testDir], "roots");
+    setAllowedWriteDirs([testDir], "roots");
+
     mockGetConfig.mockReturnValue({
       apiKey: "test-key",
-      outputDir: testDir,
       model: "test-model",
       fallbackModel: "test-fallback",
-      readDirs: [testDir],
-      writeDirs: [testDir],
+      readDirs: [],
+      writeDirs: [],
     });
   });
 
   afterEach(async () => {
+    resetAllowedDirs();
     if (existsSync(testDir)) {
       await rm(testDir, { recursive: true, force: true });
     }
@@ -100,7 +105,7 @@ describe("extract-text tool", () => {
     expect(result.content[0].text).toContain("Unsupported file type");
   });
 
-  it("should process a single image file successfully", async () => {
+  it("should process a single image file and write output next to source", async () => {
     mockLoadImage.mockResolvedValue({
       base64: "fakebase64",
       mimeType: "image/png",
@@ -120,11 +125,84 @@ describe("extract-text tool", () => {
     expect(result.content[0].text).toContain("Extraction complete");
     expect(result.content[0].text).toContain("Source:");
     expect(result.content[0].text).toContain("Output:");
-    expect(result.content[0].text).toContain("Format: json");
-    // "Extracted text from image" is 25 chars
-    expect(result.content[0].text).toContain("Characters extracted: 25");
-    // Should NOT include extracted text in the response
-    expect(result.content[0].text).not.toContain("Extracted text from image");
+    // Output should be in the same directory as the source
+    const files = readdirSync(testDir).filter((f) => f.endsWith(".json"));
+    expect(files.length).toBe(1);
+  });
+
+  it("should write to explicit outputPath when provided", async () => {
+    const outputDir = join(testDir, "output");
+    await mkdir(outputDir, { recursive: true });
+    setAllowedWriteDirs([testDir, outputDir], "roots");
+
+    mockLoadImage.mockResolvedValue({
+      base64: "fakebase64",
+      mimeType: "image/png",
+    });
+    mockExtractText.mockResolvedValue({
+      text: "text",
+      usedFallback: false,
+    });
+
+    const explicitOutput = join(outputDir, "custom.json");
+    const { handleExtractText } = await import("../../src/tools/extract-text.js");
+    const result = await handleExtractText(
+      { filePath: testImage, format: "json", outputPath: explicitOutput },
+      {} as never,
+    );
+
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain(explicitOutput);
+    expect(existsSync(explicitOutput)).toBe(true);
+  });
+
+  it("should reject outputPath outside allowed write dirs", async () => {
+    mockLoadImage.mockResolvedValue({
+      base64: "fakebase64",
+      mimeType: "image/png",
+    });
+    mockExtractText.mockResolvedValue({
+      text: "text",
+      usedFallback: false,
+    });
+
+    const { handleExtractText } = await import("../../src/tools/extract-text.js");
+    const result = await handleExtractText(
+      { filePath: testImage, format: "json", outputPath: "/outside/allowed/output.json" },
+      {} as never,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("denied");
+  });
+
+  it("should reject file path outside read dirs", async () => {
+    const restrictedDir = join(testDir, "restricted");
+    await mkdir(restrictedDir, { recursive: true });
+    setAllowedReadDirs([restrictedDir], "roots");
+    setAllowedWriteDirs([testDir], "roots");
+
+    const { handleExtractText } = await import("../../src/tools/extract-text.js");
+    const result = await handleExtractText(
+      { filePath: testImage },
+      {} as never,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("denied");
+  });
+
+  it("should return error when no allowed dirs are configured", async () => {
+    resetAllowedDirs();
+
+    const { handleExtractText } = await import("../../src/tools/extract-text.js");
+    const result = await handleExtractText(
+      { filePath: testImage },
+      {} as never,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("No allowed directories configured");
   });
 
   it("should return error when all pages fail", async () => {
@@ -168,26 +246,6 @@ describe("extract-text tool", () => {
     );
   });
 
-  it("should return error for missing output directory", async () => {
-    mockGetConfig.mockReturnValue({
-      apiKey: "test-key",
-      outputDir: "/nonexistent/output/dir",
-      model: "test-model",
-      fallbackModel: "test-fallback",
-      readDirs: [testDir],
-      writeDirs: [],
-    });
-
-    const { handleExtractText } = await import("../../src/tools/extract-text.js");
-    const result = await handleExtractText(
-      { filePath: testImage },
-      {} as never,
-    );
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Output directory does not exist");
-  });
-
   it("should return error for invalid page range format", async () => {
     const pdfFile = join(testDir, "test.pdf");
     await writeFile(pdfFile, Buffer.from("fake pdf data"));
@@ -200,28 +258,5 @@ describe("extract-text tool", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("Invalid page range format");
-  });
-
-  it("should reject file path outside readDirs", async () => {
-    // Configure readDirs to only allow a different directory
-    const restrictedDir = join(testDir, "restricted");
-    await mkdir(restrictedDir, { recursive: true });
-    mockGetConfig.mockReturnValue({
-      apiKey: "test-key",
-      outputDir: testDir,
-      model: "test-model",
-      fallbackModel: "test-fallback",
-      readDirs: [restrictedDir],
-      writeDirs: [testDir],
-    });
-
-    const { handleExtractText } = await import("../../src/tools/extract-text.js");
-    const result = await handleExtractText(
-      { filePath: testImage },
-      {} as never,
-    );
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("denied");
   });
 });

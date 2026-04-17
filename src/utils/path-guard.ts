@@ -1,5 +1,6 @@
 import { realpathSync } from "node:fs";
 import { sep, resolve } from "node:path";
+import { getAllowedReadDirs, getAllowedWriteDirs } from "./allowed-dirs.js";
 
 export function isWithinAllowed(realPath: string, allowedDirs: string[]): boolean {
   return allowedDirs.some(
@@ -41,6 +42,14 @@ export function assertPath(
       );
     }
   }
+}
+
+export function assertReadPath(rawPath: string): string {
+  return assertPath(rawPath, getAllowedReadDirs(), "Read");
+}
+
+export function assertWritePath(rawPath: string): string {
+  return assertPath(rawPath, getAllowedWriteDirs(), "Write");
 }
 
 export class PermissionError extends Error {

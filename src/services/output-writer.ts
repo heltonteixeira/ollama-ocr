@@ -1,6 +1,5 @@
 import { writeFile, rename } from "node:fs/promises";
 import { basename, join, extname } from "node:path";
-import { assertPath } from "../utils/path-guard.js";
 
 export interface PageResult {
   pageNumber: number;
@@ -126,20 +125,11 @@ function formatFailedPages(failedPageNumbers: number[]): string {
 }
 
 export async function writeOutput(
-  outputDir: string,
-  filename: string,
+  outputPath: string,
   content: string,
-  writeDirs?: string[],
 ): Promise<string> {
-  const outputPath = join(outputDir, filename);
-
-  // Validate write path against allowed dirs (if configured)
-  if (writeDirs && writeDirs.length > 0) {
-    assertPath(outputPath, writeDirs, "Write");
-  }
-
-  // Atomic write: temp file + rename
   const tmpdir = process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP ?? "/tmp";
+  const filename = basename(outputPath);
   const tmpPath = join(tmpdir, `.ocr_tmp_${Date.now()}_${filename}`);
   await writeFile(tmpPath, content, "utf-8");
   await rename(tmpPath, outputPath);

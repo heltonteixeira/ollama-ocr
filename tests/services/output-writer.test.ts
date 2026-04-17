@@ -1,9 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { join } from "node:path";
 import {
   formatJsonOutput,
   formatMarkdownOutput,
   formatTextOutput,
   generateOutputFilename,
+  writeOutput,
   type PageResult,
   type OutputMetadata,
 } from "../../src/services/output-writer.js";
@@ -148,5 +151,37 @@ describe("output formats for image source", () => {
     expect(parsed.metadata.sourceType).toBe("image");
     expect(parsed.metadata.totalPages).toBe(1);
     expect(parsed.pages[0].pageNumber).toBe(1);
+  });
+});
+
+describe("writeOutput", () => {
+  const tmpBase = process.env.TMPDIR ?? "/tmp";
+  let outputDir: string;
+
+  beforeEach(async () => {
+    outputDir = join(tmpBase, `ocr-write-test-${Date.now()}`);
+    await mkdir(outputDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    try { await rm(outputDir, { recursive: true, force: true }); } catch { /* ok */ }
+  });
+
+  it("should write content to the specified output path", async () => {
+    const outputPath = join(outputDir, "result.json");
+    const result = await writeOutput(outputPath, "test content");
+
+    expect(result).toBe(outputPath);
+    const written = await readFile(outputPath, "utf-8");
+    expect(written).toBe("test content");
+  });
+
+  it("should overwrite existing file", async () => {
+    const outputPath = join(outputDir, "result.json");
+    await writeFile(outputPath, "old content");
+    await writeOutput(outputPath, "new content");
+
+    const written = await readFile(outputPath, "utf-8");
+    expect(written).toBe("new content");
   });
 });
