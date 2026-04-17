@@ -25,12 +25,12 @@ import { OCR_USER_PROMPT } from "../prompts/ocr.js";
 
 const SUPPORTED_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ".pdf"]);
 
-const ExtractTextInputSchema = {
+const ExtractTextInputSchema = z.object({
   filePath: z.string().describe("Absolute path to a PDF or image file"),
   format: z.enum(["json", "markdown", "text"]).optional().default("json").describe("Output format: json, markdown, or text"),
   model: z.string().optional().describe("Ollama vision model identifier. Overrides OLLAMA_OCR_MODEL"),
   pages: z.string().optional().describe("Page range for PDFs. Formats: \"1-5\", \"1,3,7\", \"1-3,7,10-12\""),
-};
+}).strict();
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -294,10 +294,18 @@ export async function handleExtractText(
 }
 
 export function registerExtractTextTool(server: McpServer): void {
-  server.tool(
+  server.registerTool(
     "extract-text",
-    "Extract verbatim text from a PDF or image file using Ollama Cloud vision models",
-    ExtractTextInputSchema,
+    {
+      description: "Extract verbatim text from a PDF or image file using Ollama Cloud vision models",
+      inputSchema: ExtractTextInputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
     handleExtractText,
   );
 }
