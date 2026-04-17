@@ -1,11 +1,13 @@
-import { existsSync, accessSync, constants } from "node:fs";
-import { extname, resolve, basename, join } from "node:path";
+// src/tools/extract-text.ts
+import { existsSync } from "node:fs";
+import { extname, resolve, basename, dirname, join } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { getConfig } from "../utils/config.js";
-import { PermissionError, assertPath } from "../utils/path-guard.js";
+import { PermissionError, assertReadPath, assertWritePath } from "../utils/path-guard.js";
+import { getAllowedReadDirs, getAllowedWriteDirs } from "../utils/allowed-dirs.js";
 import { info, warn } from "../utils/progress.js";
 import { retry } from "../utils/retry.js";
 import { splitBatches, processBatch } from "../utils/concurrency.js";
@@ -30,6 +32,7 @@ const ExtractTextInputSchema = z.object({
   format: z.enum(["json", "markdown", "text"]).optional().default("json").describe("Output format: json, markdown, or text"),
   model: z.string().optional().describe("Ollama vision model identifier. Overrides OLLAMA_OCR_MODEL"),
   pages: z.string().optional().describe("Page range for PDFs. Formats: \"1-5\", \"1,3,7\", \"1-3,7,10-12\""),
+  outputPath: z.string().optional().describe("Absolute path for the output file. Defaults to the source file's directory with an auto-generated filename."),
 }).strict();
 
 function formatDuration(ms: number): string {
@@ -103,6 +106,7 @@ export async function handleExtractText(
     format?: "json" | "markdown" | "text";
     model?: string;
     pages?: string;
+    outputPath?: string;
   },
   _extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ): Promise<{
@@ -114,20 +118,29 @@ export async function handleExtractText(
   const model = args.model ?? config.model;
   const startTime = Date.now();
 
+  // Check that allowed dirs are configured
+  const readDirs = getAllowedReadDirs();
+  const writeDirs = getAllowedWriteDirs();
+  if (readDirs.length === 0 && writeDirs.length === 0) {
+    return {
+      content: [{ type: "text", text: "No allowed directories configured. The client must support MCP Roots, or --read/--write must be provided." }],
+      isError: true,
+    };
+  }
+
   const absolutePath = resolve(args.filePath);
 
-  if (config.readDirs.length > 0) {
-    try {
-      assertPath(absolutePath, config.readDirs, "Read");
-    } catch (err) {
-      if (err instanceof PermissionError) {
-        return {
-          content: [{ type: "text", text: err.message }],
-          isError: true,
-        };
-      }
-      throw err;
+  // Validate read path
+  try {
+    assertReadPath(absolutePath);
+  } catch (err) {
+    if (err instanceof PermissionError) {
+      return {
+        content: [{ type: "text", text: err.message }],
+        isError: true,
+      };
     }
+    throw err;
   }
 
   if (!existsSync(absolutePath)) {
@@ -145,13 +158,6 @@ export async function handleExtractText(
     };
   }
 
-  if (config.writeDirs.length === 0) {
-    return {
-      content: [{ type: "text", text: "No output directory configured. Use --write to specify an output directory." }],
-      isError: true,
-    };
-  }
-
   if (args.pages) {
     const pagesRegex = /^\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*$/;
     if (!pagesRegex.test(args.pages)) {
@@ -160,6 +166,29 @@ export async function handleExtractText(
         isError: true,
       };
     }
+  }
+
+  // Determine output path
+  let finalOutputPath: string;
+  if (args.outputPath) {
+    finalOutputPath = resolve(args.outputPath);
+  } else {
+    const sourceDir = dirname(absolutePath);
+    const filename = generateOutputFilename(absolutePath, format);
+    finalOutputPath = join(sourceDir, filename);
+  }
+
+  // Validate write path
+  try {
+    assertWritePath(finalOutputPath);
+  } catch (err) {
+    if (err instanceof PermissionError) {
+      return {
+        content: [{ type: "text", text: err.message }],
+        isError: true,
+      };
+    }
+    throw err;
   }
 
   const isPdf = ext === ".pdf";
@@ -231,9 +260,8 @@ export async function handleExtractText(
       processingTimeMs,
     };
 
-    const filename = generateOutputFilename(absolutePath, format);
-    let content: string;
     const docName = basename(absolutePath);
+    let content: string;
 
     switch (format) {
       case "json":
@@ -247,9 +275,7 @@ export async function handleExtractText(
         break;
     }
 
-    const outputDir = config.writeDirs[0];
-    const fullPath = join(outputDir, filename);
-    const outputPath = await writeOutput(fullPath, content);
+    await writeOutput(finalOutputPath, content);
 
     if (successfulPages.length === 0) {
       return {
@@ -274,7 +300,7 @@ export async function handleExtractText(
         text: [
           "Extraction complete.",
           `Source: ${absolutePath}`,
-          `Output: ${outputPath}`,
+          `Output: ${finalOutputPath}`,
           `Format: ${format} | Model: ${model}`,
           `Pages: ${totalPages} total | ${successfulPages.length} successful${failedInfo}`,
           `Characters extracted: ${totalChars.toLocaleString()}`,
@@ -299,7 +325,12 @@ export function registerExtractTextTool(server: McpServer): void {
   server.registerTool(
     "extract-text",
     {
-      description: "Extract verbatim text from a PDF or image file using Ollama Cloud vision models",
+      description: [
+        "Extract verbatim text from a PDF or image file using Ollama Cloud vision models.",
+        "The output file is written next to the source file by default. Use outputPath to specify a different location.",
+        "File access is restricted to directories provided by the client workspace (MCP Roots) or configured via --read/--write CLI arguments.",
+        "Use the list_allowed_directories tool to check which directories are accessible.",
+      ].join(" "),
       inputSchema: ExtractTextInputSchema,
       annotations: {
         readOnlyHint: false,
