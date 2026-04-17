@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { registerExtractTextTool } from "./tools/extract-text.js";
+import { registerListAllowedDirsTool } from "./tools/list-allowed-dirs.js";
 import { setAllowedReadDirs, setAllowedWriteDirs, parseRootUris } from "./utils/allowed-dirs.js";
 import { getConfig } from "./utils/config.js";
 import { setProgressServer } from "./utils/progress.js";
@@ -14,6 +15,7 @@ export async function createServer(): Promise<McpServer> {
 
   setProgressServer(server);
   registerExtractTextTool(server);
+  registerListAllowedDirsTool(server);
 
   server.server.oninitialized = async () => {
     const clientCapabilities = server.server.getClientCapabilities();
