@@ -259,4 +259,27 @@ describe("extract-text tool", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("Invalid page range format");
   });
+
+  it("should not write output file when all pages fail", async () => {
+    mockLoadImage.mockResolvedValue({
+      base64: "fakebase64",
+      mimeType: "image/png",
+    });
+    mockExtractText.mockRejectedValue(new Error("API error"));
+
+    const { handleExtractText } = await import("../../src/tools/extract-text.js");
+    const result = await handleExtractText(
+      { filePath: testImage },
+      {} as never,
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("failed");
+
+    // No output file should be created
+    const files = readdirSync(testDir).filter(
+      (f) => f !== "test.png" && !f.startsWith(".ocr_tmp_"),
+    );
+    expect(files).toHaveLength(0);
+  }, 15000);
 });
