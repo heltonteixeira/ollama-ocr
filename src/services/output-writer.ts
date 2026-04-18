@@ -1,5 +1,5 @@
-import { writeFile, rename } from "node:fs/promises";
-import { basename, join, extname } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { basename, extname } from "node:path";
 
 export interface PageResult {
   pageNumber: number;
@@ -128,11 +128,6 @@ export async function writeOutput(
   outputPath: string,
   content: string,
 ): Promise<string> {
-  const tmpdir = process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP ?? "/tmp";
-  const filename = basename(outputPath);
-  const tmpPath = join(tmpdir, `.ocr_tmp_${Date.now()}_${filename}`);
-  await writeFile(tmpPath, content, "utf-8");
-  await rename(tmpPath, outputPath);
-
+  await writeFile(outputPath, content, "utf-8");
   return outputPath;
 }
