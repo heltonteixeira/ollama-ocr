@@ -87,7 +87,7 @@ await writeFile(outputPath, content, "utf-8");
 return outputPath;
 ```
 
-Removes `$TMPDIR` dependency, `rename()`, `basename`, `join` imports, and both the EXDEV and permission bugs. Unused imports (`basename`, `join` from `node:path`; `rename` from `node:fs/promises`) can be removed.
+Removes `$TMPDIR` dependency and `rename()` call, eliminating both the EXDEV and permission bugs. The `rename` import from `node:fs/promises` becomes unused and should be removed. (`basename` and `join` are still used by other functions in the same file.)
 
 ### 3. Gate file writes on success
 
