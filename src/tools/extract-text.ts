@@ -331,7 +331,6 @@ export function registerExtractTextTool(server: McpServer): void {
         "Extract verbatim text from a PDF or image file using Ollama Cloud vision models.",
         "The output file is written next to the source file by default. Use outputPath to specify a different location.",
         "File access is restricted to directories provided by the client workspace (MCP Roots) or configured via --read/--write CLI arguments.",
-        "Use the list_allowed_directories tool to check which directories are accessible.",
       ].join(" "),
       inputSchema: ExtractTextInputSchema,
       annotations: {
