@@ -1,6 +1,6 @@
 // src/utils/config.ts
 import { realpathSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { resolve } from "node:path";
 
 export interface Config {
   apiKey: string;

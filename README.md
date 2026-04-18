@@ -107,24 +107,6 @@ node dist/index.js --read /project/src,/home/user/docs --write /project/output
 
 If neither MCP Roots nor CLI arguments are provided, all file access is denied.
 
-### Checking Permissions
-
-Use the `list_allowed_directories` tool to check which directories the server can access:
-
-```
-list_allowed_directories
-```
-
-Returns:
-```json
-{
-  "readDirs": ["/home/user/project"],
-  "writeDirs": ["/home/user/project"],
-  "source": "roots"
-}
-```
-
-`source` indicates how permissions were configured: `"roots"` (MCP Roots), `"cli-args"`, or `"none"`.
 
 ## Tool: `extract-text`
 
