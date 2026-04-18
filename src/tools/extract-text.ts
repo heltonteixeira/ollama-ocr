@@ -275,7 +275,9 @@ export async function handleExtractText(
         break;
     }
 
-    await writeOutput(finalOutputPath, content);
+    if (successfulPages.length > 0) {
+      await writeOutput(finalOutputPath, content);
+    }
 
     if (successfulPages.length === 0) {
       return {
