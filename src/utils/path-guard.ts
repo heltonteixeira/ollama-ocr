@@ -8,6 +8,14 @@ export function isWithinAllowed(realPath: string, allowedDirs: string[]): boolea
   );
 }
 
+function formatDeniedMessage(
+  label: string,
+  resolved: string,
+  allowedDirs: string[],
+): string {
+  return `${label} denied: ${resolved} is outside allowed directories. Allowed: ${allowedDirs.join(", ")}`;
+}
+
 export function assertPath(
   rawPath: string,
   allowedDirs: string[],
@@ -19,7 +27,7 @@ export function assertPath(
     const real = realpathSync(resolved);
     if (!isWithinAllowed(real, allowedDirs)) {
       throw new PermissionError(
-        `${label} denied: ${resolved} is outside allowed directories`,
+        formatDeniedMessage(label, resolved, allowedDirs),
       );
     }
     return real;
@@ -31,14 +39,14 @@ export function assertPath(
       const realFull = realParent + resolved.substring(resolved.lastIndexOf(sep));
       if (!isWithinAllowed(realFull, allowedDirs)) {
         throw new PermissionError(
-          `${label} denied: ${resolved} is outside allowed directories`,
+          formatDeniedMessage(label, resolved, allowedDirs),
         );
       }
       return realFull;
     } catch (innerErr) {
       if (innerErr instanceof PermissionError) throw innerErr;
       throw new PermissionError(
-        `${label} denied: ${resolved} is outside allowed directories`,
+        formatDeniedMessage(label, resolved, allowedDirs),
       );
     }
   }
