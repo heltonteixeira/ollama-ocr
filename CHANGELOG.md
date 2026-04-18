@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.6](https://github.com/heltonteixeira/ollama-ocr/compare/v0.0.5...v0.0.6) (2026-04-18)
+
+
+### Features
+
+* include allowed directories in PermissionError messages ([b4ced80](https://github.com/heltonteixeira/ollama-ocr/commit/b4ced808078e411b5c6dc4db2a0d90dead4614f7))
+
+
+### Bug Fixes
+
+* gate output file writes on extraction success ([0b19ca2](https://github.com/heltonteixeira/ollama-ocr/commit/0b19ca2c0aec66399fc46287daf0bd304519f39b))
+
+
+### Documentation
+
+* add write output and permission system fix design ([8912f01](https://github.com/heltonteixeira/ollama-ocr/commit/8912f01009bb72074e4c05650392f7fba232619c))
+* fix import removal note in writefix design ([1b23f70](https://github.com/heltonteixeira/ollama-ocr/commit/1b23f705a40016452342da01fffbda65eda6a6bf))
+
+
+### Build
+
+* cleanup unused imports, tool description, and README ([954a1ac](https://github.com/heltonteixeira/ollama-ocr/commit/954a1acee1e34869b82e91c8acf863f4a00d496d))
+
 ### [0.0.5](https://github.com/heltonteixeira/ollama-ocr/compare/v0.0.4...v0.0.5) (2026-04-17)
 
 
