@@ -126,4 +126,54 @@ describe("PermissionError", () => {
     expect(err.name).toBe("PermissionError");
     expect(err.message).toBe("test");
   });
+
+  it("should include allowed directories in assertPath error message", () => {
+    const tmpBase = process.env.TMPDIR ?? "/tmp";
+    const outsideDir = join(tmpBase, `permission-test-${Date.now()}`);
+    mkdirSync(outsideDir, { recursive: true });
+    const allowedDirs = ["/home/user/project", "/docs"];
+
+    try {
+      assertPath(join(outsideDir, "file.txt"), allowedDirs, "Write");
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PermissionError);
+      const msg = (err as PermissionError).message;
+      expect(msg).toContain("Write denied");
+      expect(msg).toContain("/home/user/project");
+      expect(msg).toContain("/docs");
+      expect(msg).toContain("Allowed:");
+    } finally {
+      try { rmSync(outsideDir, { recursive: true, force: true }); } catch { /* ok */ }
+    }
+  });
+
+  it("should include allowed directories in assertReadPath error message", () => {
+    resetAllowedDirs();
+    setAllowedReadDirs(["/home/user/project"]);
+
+    try {
+      assertReadPath("/outside/file.txt");
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PermissionError);
+      expect((err as PermissionError).message).toContain("/home/user/project");
+      expect((err as PermissionError).message).toContain("Allowed:");
+    }
+  });
+
+  it("should include allowed directories in assertWritePath error message", () => {
+    resetAllowedDirs();
+    setAllowedWriteDirs(["/home/user/project", "/output"]);
+
+    try {
+      assertWritePath("/outside/file.txt");
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PermissionError);
+      expect((err as PermissionError).message).toContain("/home/user/project");
+      expect((err as PermissionError).message).toContain("/output");
+      expect((err as PermissionError).message).toContain("Allowed:");
+    }
+  });
 });
