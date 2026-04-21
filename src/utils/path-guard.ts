@@ -1,10 +1,14 @@
 import { realpathSync } from "node:fs";
-import { sep, resolve } from "node:path";
+import { normalize, sep, resolve } from "node:path";
 import { getAllowedReadDirs, getAllowedWriteDirs } from "./allowed-dirs.js";
 
 export function isWithinAllowed(realPath: string, allowedDirs: string[]): boolean {
+  const normalizedPath = normalize(realPath);
   return allowedDirs.some(
-    (dir) => realPath === dir || realPath.startsWith(dir + sep),
+    (dir) => {
+      const normalizedDir = normalize(dir);
+      return normalizedPath === normalizedDir || normalizedPath.startsWith(normalizedDir + sep);
+    },
   );
 }
 

@@ -83,7 +83,14 @@ describe("allowed-dirs", () => {
       const result = parseRootUris([
         { uri: "file:///home/user/project", name: "Project" },
       ]);
-      expect(result).toEqual(["/home/user/project"]);
+      expect(result).toHaveLength(1);
+      // On Windows, resolve() prepends the drive letter
+      const normalized = result[0].replace(/\\/g, "/");
+      if (process.platform === "win32") {
+        expect(normalized).toMatch(/^[A-Za-z]:\/home\/user\/project$/);
+      } else {
+        expect(normalized).toBe("/home/user/project");
+      }
     });
 
     it("should skip non-file URIs", () => {
@@ -98,7 +105,15 @@ describe("allowed-dirs", () => {
         { uri: "file:///home/user/project", name: "Project" },
         { uri: "file:///home/user/docs", name: "Docs" },
       ]);
-      expect(result).toEqual(["/home/user/project", "/home/user/docs"]);
+      expect(result).toHaveLength(2);
+      const normalizePath = (p: string) => p.replace(/\\/g, "/");
+      if (process.platform === "win32") {
+        expect(normalizePath(result[0])).toMatch(/^[A-Za-z]:\/home\/user\/project$/);
+        expect(normalizePath(result[1])).toMatch(/^[A-Za-z]:\/home\/user\/docs$/);
+      } else {
+        expect(normalizePath(result[0])).toBe("/home/user/project");
+        expect(normalizePath(result[1])).toBe("/home/user/docs");
+      }
     });
 
     it("should handle empty roots array", () => {
@@ -110,7 +125,9 @@ describe("allowed-dirs", () => {
       const result = parseRootUris([
         { uri: "file:///C:/Users/name/project", name: "Win" },
       ]);
-      expect(result).toEqual(["C:/Users/name/project"]);
+      // normalize(resolve()) produces platform-native separators
+      expect(result).toHaveLength(1);
+      expect(result[0].replace(/\\/g, "/")).toBe("C:/Users/name/project");
     });
   });
 });

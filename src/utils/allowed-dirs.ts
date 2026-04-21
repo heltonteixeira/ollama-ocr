@@ -1,6 +1,6 @@
 // src/utils/allowed-dirs.ts
 import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { normalize, resolve } from "node:path";
 
 type PermissionSource = "roots" | "cli-args" | "none";
 
@@ -36,10 +36,6 @@ export function resetAllowedDirs(): void {
   source = "none";
 }
 
-function isWindowsPath(p: string): boolean {
-  return /^[A-Za-z]:\//.test(p);
-}
-
 export function parseRootUris(
   roots: Array<{ uri: string; name?: string }>,
 ): string[] {
@@ -50,7 +46,8 @@ export function parseRootUris(
       continue;
     }
     const filePath = fileUriToPath(root.uri);
-    const resolved = isWindowsPath(filePath) ? filePath : resolve(filePath);
+    // Always resolve + normalize to ensure consistent platform separators
+    const resolved = normalize(resolve(filePath));
     try {
       paths.push(realpathSync(resolved));
     } catch {
