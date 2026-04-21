@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.7](https://github.com/heltonteixeira/ollama-ocr/compare/v0.0.6...v0.0.7) (2026-04-21)
+
+
+### Bug Fixes
+
+* normalize path separators for cross-platform compatibility ([d8e41b7](https://github.com/heltonteixeira/ollama-ocr/commit/d8e41b7584a4a62ce12361dbbc2bf0aabe9639f5))
+* use platform-agnostic separator normalization for CI on Linux ([5c0e07f](https://github.com/heltonteixeira/ollama-ocr/commit/5c0e07fce645258242e3bce4557d01f4f59563c6))
+
 ### [0.0.6](https://github.com/heltonteixeira/ollama-ocr/compare/v0.0.5...v0.0.6) (2026-04-18)
 
 
