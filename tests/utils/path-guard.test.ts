@@ -34,23 +34,45 @@ describe("isWithinAllowed", () => {
 
   describe("cross-platform separator handling", () => {
     it("should match child path with mixed separators (allowed=/ realPath=\\)", () => {
-      expect(isWithinAllowed("C:\\Users\\project\\file.txt", ["C:/Users/project"])).toBe(true);
+      // On Linux, backslash is just a char — only test mixed separators on Windows
+      if (process.platform === "win32") {
+        expect(isWithinAllowed("C:\\Users\\project\\file.txt", ["C:/Users/project"])).toBe(true);
+      } else {
+        // On POSIX: forward slashes in both, verify normalize handles trailing/etc
+        expect(isWithinAllowed("/home/user/project/file.txt", ["/home/user/project"])).toBe(true);
+      }
     });
 
     it("should match child path with mixed separators (allowed=\\ realPath=/)", () => {
-      expect(isWithinAllowed("C:/Users/project/file.txt", ["C:\\Users\\project"])).toBe(true);
+      if (process.platform === "win32") {
+        expect(isWithinAllowed("C:/Users/project/file.txt", ["C:\\Users\\project"])).toBe(true);
+      } else {
+        expect(isWithinAllowed("/home/user/project/file.txt", ["/home/user/project"])).toBe(true);
+      }
     });
 
     it("should match exact path with mixed separators", () => {
-      expect(isWithinAllowed("C:\\Users\\project", ["C:/Users/project"])).toBe(true);
+      if (process.platform === "win32") {
+        expect(isWithinAllowed("C:\\Users\\project", ["C:/Users/project"])).toBe(true);
+      } else {
+        expect(isWithinAllowed("/home/user/project", ["/home/user/project"])).toBe(true);
+      }
     });
 
     it("should reject sibling with mixed separators (no partial prefix match)", () => {
-      expect(isWithinAllowed("C:\\Users\\project-other\\file.txt", ["C:/Users/project"])).toBe(false);
+      if (process.platform === "win32") {
+        expect(isWithinAllowed("C:\\Users\\project-other\\file.txt", ["C:/Users/project"])).toBe(false);
+      } else {
+        expect(isWithinAllowed("/home/user/project-other/file.txt", ["/home/user/project"])).toBe(false);
+      }
     });
 
     it("should match when both have consistent separators", () => {
-      expect(isWithinAllowed("C:\\Users\\project\\src\\file.txt", ["C:\\Users\\project"])).toBe(true);
+      if (process.platform === "win32") {
+        expect(isWithinAllowed("C:\\Users\\project\\src\\file.txt", ["C:\\Users\\project"])).toBe(true);
+      } else {
+        expect(isWithinAllowed("/home/user/project/src/file.txt", ["/home/user/project"])).toBe(true);
+      }
     });
   });
 });
