@@ -31,6 +31,28 @@ describe("isWithinAllowed", () => {
   it("should return false when list is empty", () => {
     expect(isWithinAllowed("/any/path", [])).toBe(false);
   });
+
+  describe("cross-platform separator handling", () => {
+    it("should match child path with mixed separators (allowed=/ realPath=\\)", () => {
+      expect(isWithinAllowed("C:\\Users\\project\\file.txt", ["C:/Users/project"])).toBe(true);
+    });
+
+    it("should match child path with mixed separators (allowed=\\ realPath=/)", () => {
+      expect(isWithinAllowed("C:/Users/project/file.txt", ["C:\\Users\\project"])).toBe(true);
+    });
+
+    it("should match exact path with mixed separators", () => {
+      expect(isWithinAllowed("C:\\Users\\project", ["C:/Users/project"])).toBe(true);
+    });
+
+    it("should reject sibling with mixed separators (no partial prefix match)", () => {
+      expect(isWithinAllowed("C:\\Users\\project-other\\file.txt", ["C:/Users/project"])).toBe(false);
+    });
+
+    it("should match when both have consistent separators", () => {
+      expect(isWithinAllowed("C:\\Users\\project\\src\\file.txt", ["C:\\Users\\project"])).toBe(true);
+    });
+  });
 });
 
 describe("assertPath (with explicit dirs)", () => {
