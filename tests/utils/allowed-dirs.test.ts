@@ -122,12 +122,22 @@ describe("allowed-dirs", () => {
     });
 
     it("should handle Windows file URIs", () => {
-      const result = parseRootUris([
-        { uri: "file:///C:/Users/name/project", name: "Win" },
-      ]);
-      // normalize(resolve()) produces platform-native separators
-      expect(result).toHaveLength(1);
-      expect(result[0].replace(/\\/g, "/")).toBe("C:/Users/name/project");
+      // This test only makes sense on Windows where C:/ is a real drive
+      if (process.platform === "win32") {
+        const result = parseRootUris([
+          { uri: "file:///C:/Users/name/project", name: "Win" },
+        ]);
+        expect(result).toHaveLength(1);
+        expect(result[0].replace(/\\/g, "/")).toBe("C:/Users/name/project");
+      } else {
+        // On Linux, file:///C:/Users/... resolves to <cwd>/C:/Users/... which won't exist
+        // Verify it doesn't crash and returns a resolved path
+        const result = parseRootUris([
+          { uri: "file:///C:/Users/name/project", name: "Win" },
+        ]);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toContain("C:/Users/name/project");
+      }
     });
   });
 });

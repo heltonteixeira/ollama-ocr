@@ -2,11 +2,23 @@ import { realpathSync } from "node:fs";
 import { normalize, sep, resolve } from "node:path";
 import { getAllowedReadDirs, getAllowedWriteDirs } from "./allowed-dirs.js";
 
+/** Platform-agnostic normalize: converts both / and \ to the platform's sep */
+function normalizeSeparators(p: string): string {
+  // First normalize natively, then ensure any stray alternate separators are converted
+  const native = normalize(p);
+  if (sep === "/") {
+    // Linux/Mac: convert any backslashes to forward slashes
+    return native.replace(/\\/g, "/");
+  }
+  // Windows: convert any forward slashes to backslashes
+  return native.replace(/\//g, "\\");
+}
+
 export function isWithinAllowed(realPath: string, allowedDirs: string[]): boolean {
-  const normalizedPath = normalize(realPath);
+  const normalizedPath = normalizeSeparators(realPath);
   return allowedDirs.some(
     (dir) => {
-      const normalizedDir = normalize(dir);
+      const normalizedDir = normalizeSeparators(dir);
       return normalizedPath === normalizedDir || normalizedPath.startsWith(normalizedDir + sep);
     },
   );
